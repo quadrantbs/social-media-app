@@ -116,6 +116,9 @@ const resolvers = {
     follow: async (_, { followingId }, 
         // { user }
     ) => {
+        if (followingId==="66e96e92811fb72da0b1e34b") {
+            throw new Error("Cannot follow your own account")
+        }
         const existingFollow = await Follow.findOne(followingId, 
             followerId= "66e96e92811fb72da0b1e34b")
             if (existingFollow) {
