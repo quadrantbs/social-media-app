@@ -6,6 +6,8 @@ const typeDefs = gql`
     name: String!
     username: String!
     email: String!
+    following: [User]
+    followers: [User]
   }
 
   type Post {
@@ -41,6 +43,7 @@ const typeDefs = gql`
   type Query {
     login(username: String!, password: String!): String
     getUser(id: ID!): User
+    getPosts: [Post]
     getPost(id: ID!): Post
     searchUser(username: String!): [User]
   }

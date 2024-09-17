@@ -1,8 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { User } = require("../models/User");
-const Post = require("../models/Post");
-const Follow = require("../models/Follow");
+const { Post } = require("../models/Post");
+const {Follow} = require("../models/Follow");
 
 const resolvers = {
   Query: {
@@ -24,8 +24,11 @@ const resolvers = {
     getUser: async (_, { id }) => {
       return await User.findById(id);
     },
+    getPosts: async () => {
+      return await Post.findAll();
+    },
     getPost: async (_, { id }) => {
-      return Post.findById(id).populate("authorId");
+      return await Post.findById(id);
     },
     searchUser: async (_, { username }) => {
       return await User.searchUser(username);
@@ -57,26 +60,76 @@ const resolvers = {
       const result = await User.createUser(user);
       return { _id: result.insertedId, ...user };
     },
-    addPost: async (_, { content, tags, imgUri }, { user }) => {
-      if (!user) throw new Error("You must be logged in to post");
-      const post = new Post({ content, tags, imgUri, authorId: user.id });
-      return post.save();
+    addPost: async (
+      _,
+      { content, tags, imgUrl },
+    //   {user} 
+    ) => {
+      //   if (!user) throw new Error("You must be logged in to post");
+      if (!content) {
+        throw new Error("Content is required");
+      }
+      const post = {
+        content,
+        tags,
+        imgUrl,
+        comments: [],
+        likes: [],
+        // authorId: user.id
+        authorId: "66e96e92811fb72da0b1e34b",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const result = await Post.createPost(post);
+      return { _id: result.insertedId, ...post };
     },
-    commentPost: async (_, { postId, content }, { user }) => {
-      const post = await Post.findById(postId);
+    commentPost: async (_, { postId, content }, 
+        // { user }
+    ) => {
+        const comment = {
+            content, 
+            // username: user.username 
+            username: "okattako",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        }
+      const post = await Post.commentPost(postId, comment);
       if (!post) throw new Error("Post not found");
-      post.comments.push({ content, username: user.username });
-      return post.save();
+      return post;
     },
-    likePost: async (_, { postId }, { user }) => {
-      const post = await Post.findById(postId);
+    likePost: async (_, { postId }, 
+        // { user }
+    ) => {
+        const newLike = {
+            // username: user.username 
+            username: "okattako",
+            createdAt: new Date().toISOString(),
+        }
+        const alreadyLiked = (await Post.findById(postId)).likes.some(like=> like.username ===newLike.username)
+        if (alreadyLiked) {
+            throw new Error ("User has already liked this post")
+        }
+      const post = await Post.likePost(postId, newLike);
       if (!post) throw new Error("Post not found");
-      post.likes.push({ username: user.username });
-      return post.save();
+      return post;
     },
-    follow: async (_, { followingId }, { user }) => {
-      const follow = new Follow({ followingId, followerId: user.id });
-      return follow.save();
+    follow: async (_, { followingId }, 
+        // { user }
+    ) => {
+        const existingFollow = await Follow.findOne(followingId, 
+            followerId= "66e96e92811fb72da0b1e34b")
+            if (existingFollow) {
+               const result = await Follow.unFollow(followingId, 
+                followerId= "66e96e92811fb72da0b1e34b")
+                console.log(result)
+                return { _id: "Deleted", followingId, followerId };
+            }  
+      const result = await Follow.createFollow(
+        followingId, 
+        followerId= "66e96e92811fb72da0b1e34b",
+        // followerId: user.id 
+    );
+      return { _id: result.insertedId, followingId, followerId };
     },
   },
 };
