@@ -1,6 +1,5 @@
 const { ApolloServer } = require("apollo-server");
 const mongoose = require("mongoose");
-const { MongoClient } = require('mongodb');
 const typeDefs = require("./typeDefs");
 const resolvers = require("./resolvers");
 const jwt = require("jsonwebtoken");

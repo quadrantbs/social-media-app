@@ -12,7 +12,7 @@ const likeSchema = new mongoose.Schema({
 const postSchema = new mongoose.Schema({
   content: { type: String, required: true },
   tags: [String],
-  imgUri: String,
+  imgUrl: String,
   authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   comments: [commentSchema],
   likes: [likeSchema],
