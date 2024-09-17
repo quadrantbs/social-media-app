@@ -1,13 +1,29 @@
-const mongoose = require("mongoose");
+const { db } = require("../db");
+const { ObjectId } = require("mongodb");
 
-const userSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    username: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true, match: /.+\@.+\..+/ },
-    password: { type: String, required: true, minlength: 5 },
-  },
-  { timestamps: true }
-);
+class User {
+  static async createUser(user) {
+    return await db.collection("users").insertOne(user);
+  }
+  static async findOne(key) {
+    return await db.collection("users").findOne(key);
+  }
+  static async searchUser(searchKey) {
+    return await db
+      .collection("users")
+      .find({
+        $or: [
+          { username: { $regex: searchKey, $options: "i" } },
+          { name: { $regex: searchKey, $options: "i" } }, 
+        ],
+      })
+      .toArray();
+  }
+  static async findById(idString) {
+    const _id = new ObjectId(idString);
+    console.log(_id);
+    return await db.collection("users").findOne(_id);
+  }
+}
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = { User };

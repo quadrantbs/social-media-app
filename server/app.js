@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const typeDefs = require("./typeDefs");
 const resolvers = require("./resolvers");
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
 
 // const context = ({ req }) => {
 //   const token = req.headers.authorization || "";
@@ -20,15 +19,6 @@ const server = new ApolloServer({
   //   context,
 });
 
-mongoose
-  .connect(process.env.MONGODB)
-  .then(() => {
-    console.log("MongoDB Connected");
-    return server.listen({ port: 4000 });
-  })
-  .then((res) => {
-    console.log(`Server running at ${res.url}`);
-  })
-  .catch((err) => {
-    console.error(err);
-  });
+server.listen().then(({ url }) => {
+  console.log(`Server ready at ${url}`);
+});

@@ -1,21 +1,14 @@
-const mongoose = require('mongoose');
+const { db } = require("../db");
+const { ObjectId } = require("mongodb");
 
-const commentSchema = new mongoose.Schema({
-  content: { type: String, required: true },
-  username: { type: String, required: true },
-}, { timestamps: true });
+class Post {
+  static async createPost(post) {
+    return await db.collection("posts").insertOne(post);
+  }
+  static async findById(idString) {
+    const _id = new ObjectId(idString);
+    return await db.collection("posts").findOne(_id);
+  }
+}
 
-const likeSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-}, { timestamps: true });
-
-const postSchema = new mongoose.Schema({
-  content: { type: String, required: true },
-  tags: [String],
-  imgUrl: String,
-  authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  comments: [commentSchema],
-  likes: [likeSchema],
-}, { timestamps: true });
-
-module.exports = mongoose.model('Post', postSchema);
+module.exports = { Post };
