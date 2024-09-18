@@ -69,9 +69,15 @@ const resolvers = {
       if (!content) {
         throw new Error("Content is required");
       }
+      let tagsArray = [];
+      if (typeof tags === 'string') {
+        tagsArray = tags.split(',').map(tag => tag.trim());  
+      } else if (Array.isArray(tags)) {
+        tagsArray = tags;  
+      }
       const post = {
         content,
-        tags,
+        tags: tagsArray,
         imgUrl,
         comments: [],
         likes: [],
