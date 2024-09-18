@@ -13,11 +13,26 @@ class Post {
       .toArray();
   }
   static async findById(idString) {
-    const _id = new ObjectId(idString);
-    return await db.collection("posts").findOne(_id);
+    const _id = new ObjectId(String(idString));
+    const result = await db
+      .collection("posts")
+      .aggregate([
+        { $match: { _id } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "authorId",
+            foreignField: "_id",
+            as: "author",
+          },
+        },
+        { $unwind: "$author" },
+      ])
+      .next();
+    return result;
   }
   static async commentPost(idString, newComment) {
-    const _id = new ObjectId(idString);
+    const _id = new ObjectId(String(idString));
     return await db.collection("posts").findOneAndUpdate(
       { _id },
       {
@@ -28,7 +43,7 @@ class Post {
     );
   }
   static async likePost(idString, newLike) {
-    const _id = new ObjectId(idString);
+    const _id = new ObjectId(String(idString));
     return await db.collection("posts").findOneAndUpdate(
       { _id },
       {

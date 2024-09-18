@@ -3,17 +3,25 @@ const jwt = require("jsonwebtoken");
 const { User } = require("../models/User");
 const { Post } = require("../models/Post");
 const { Follow } = require("../models/Follow");
+const Redis = require('ioredis');
+const redis = new Redis({
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT, 
+  password: process.env.REDIS_PASS,
+  db: 0,
+});
+const CACHE_KEY = 'takogram_posts_cache';
 
 const resolvers = {
   Query: {
     login: async (_, { username, password }) => {
       const user = await User.findOne({ username });
       if (!user) {
-        throw new Error("User not found");
+        throw new Error("Incorrect username/password");
       }
       const match = await bcrypt.compare(password, user.password);
       if (!match) {
-        throw new Error("Incorrect password");
+        throw new Error("Incorrect username/password");
       }
       return jwt.sign(
         { _id: user._id, name: user.name, username: user.username },
@@ -26,7 +34,19 @@ const resolvers = {
     },
     getPosts: async (_, __, { user }) => {
       if (!user) throw new Error("You must be logged in first");
-      return await Post.findAll();
+      const cachedPosts = await redis.get(CACHE_KEY);
+  
+      if (cachedPosts) {
+        console.log('Returning cached posts');
+        return JSON.parse(cachedPosts);
+      }
+      
+      console.log('Fetching posts from DB');
+      const posts = await Post.findAll();
+      
+      await redis.set(CACHE_KEY, JSON.stringify(posts), 'EX', 3600);
+    
+      return posts;
     },
     getPost: async (_, { id }, { user }) => {
       if (!user) throw new Error("You must be logged in first");
@@ -74,7 +94,6 @@ const resolvers = {
       } else if (Array.isArray(tags)) {
         tagsArray = tags;
       }
-      console.log(user);
       const post = {
         content,
         tags: tagsArray,
@@ -86,6 +105,7 @@ const resolvers = {
         updatedAt: new Date().toISOString(),
       };
       const result = await Post.createPost(post);
+      await redis.del(CACHE_KEY);
       return { _id: result.insertedId, ...post };
     },
     commentPost: async (_, { postId, content }, { user }) => {
@@ -118,17 +138,17 @@ const resolvers = {
     },
     follow: async (_, { followingId }, { user }) => {
       if (!user) throw new Error("You must be logged in first");
-      if (followingId === "66e96e92811fb72da0b1e34b") {
+      if (followingId === user._id) {
         throw new Error("Cannot follow your own account");
       }
       const existingFollow = await Follow.findOne(
         followingId,
-        (followerId = "66e96e92811fb72da0b1e34b")
+        (followerId = user._id)
       );
       if (existingFollow) {
         const result = await Follow.unFollow(
           followingId,
-          (followerId = "66e96e92811fb72da0b1e34b")
+          (followerId = user._id)
         );
         console.log(result);
         return { _id: "Deleted", followingId, followerId };
