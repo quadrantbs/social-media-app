@@ -1,16 +1,15 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const { User } = require("../models/User");
 const { Post } = require("../models/Post");
 const { Follow } = require("../models/Follow");
-const Redis = require('ioredis');
+const Redis = require("ioredis");
+const { generateToken, comparePassword, hashPassword } = require("../helpers");
 const redis = new Redis({
   host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT, 
+  port: process.env.REDIS_PORT,
   password: process.env.REDIS_PASS,
   db: 0,
 });
-const CACHE_KEY = 'takogram_posts_cache';
+const CACHE_KEY = "takogram_posts_cache";
 
 const resolvers = {
   Query: {
@@ -19,41 +18,42 @@ const resolvers = {
       if (!user) {
         throw new Error("Incorrect username/password");
       }
-      const match = await bcrypt.compare(password, user.password);
+      const match = await comparePassword(password, user.password);
       if (!match) {
         throw new Error("Incorrect username/password");
       }
-      return jwt.sign(
+      const access_token = generateToken(
         { _id: user._id, name: user.name, username: user.username },
         process.env.JWT_SECRET
       );
+      return access_token;
     },
-    getUser: async (_, { id }, { user }) => {
-      if (!user) throw new Error("You must be logged in first");
+    getUser: async (_, { id }, { verifyToken }) => {
+      verifyToken();
       return await User.findById(id);
     },
-    getPosts: async (_, __, { user }) => {
-      if (!user) throw new Error("You must be logged in first");
+    getPosts: async (_, __, { verifyToken }) => {
+      verifyToken();
       const cachedPosts = await redis.get(CACHE_KEY);
-  
+
       if (cachedPosts) {
-        console.log('Returning cached posts');
+        console.log("Returning cached posts");
         return JSON.parse(cachedPosts);
       }
-      
-      console.log('Fetching posts from DB');
+
+      console.log("Fetching posts from DB");
       const posts = await Post.findAll();
-      
-      await redis.set(CACHE_KEY, JSON.stringify(posts), 'EX', 3600);
-    
+
+      await redis.set(CACHE_KEY, JSON.stringify(posts), "EX", 3600);
+
       return posts;
     },
-    getPost: async (_, { id }, { user }) => {
-      if (!user) throw new Error("You must be logged in first");
+    getPost: async (_, { id }, { verifyToken }) => {
+      verifyToken();
       return await Post.findById(id);
     },
-    searchUser: async (_, { username }, { user }) => {
-      if (!user) throw new Error("You must be logged in first");
+    searchUser: async (_, { username }, { verifyToken }) => {
+      verifyToken();
       return await User.searchUser(username);
     },
   },
@@ -73,7 +73,7 @@ const resolvers = {
       if (existingEmail) {
         throw new Error("Email already in use.");
       }
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await hashPassword(password);
       const user = {
         name,
         username,
@@ -83,8 +83,8 @@ const resolvers = {
       const result = await User.createUser(user);
       return { _id: result.insertedId, ...user };
     },
-    addPost: async (_, { content, tags, imgUrl }, { user }) => {
-      if (!user) throw new Error("You must be logged in first");
+    addPost: async (_, { content, tags, imgUrl }, { verifyToken }) => {
+      const { user } = verifyToken();
       if (!content) {
         throw new Error("Content is required");
       }
@@ -108,8 +108,8 @@ const resolvers = {
       await redis.del(CACHE_KEY);
       return { _id: result.insertedId, ...post };
     },
-    commentPost: async (_, { postId, content }, { user }) => {
-      if (!user) throw new Error("You must be logged in first");
+    commentPost: async (_, { postId, content }, { verifyToken }) => {
+      const { user } = verifyToken();
       const comment = {
         content,
         username: user.username,
@@ -120,8 +120,8 @@ const resolvers = {
       if (!post) throw new Error("Post not found");
       return post;
     },
-    likePost: async (_, { postId }, { user }) => {
-      if (!user) throw new Error("You must be logged in first");
+    likePost: async (_, { postId }, { verifyToken }) => {
+      const { user } = verifyToken();
       const newLike = {
         username: user.username,
         createdAt: new Date().toISOString(),
@@ -136,8 +136,8 @@ const resolvers = {
       if (!post) throw new Error("Post not found");
       return post;
     },
-    follow: async (_, { followingId }, { user }) => {
-      if (!user) throw new Error("You must be logged in first");
+    follow: async (_, { followingId }, { verifyToken }) => {
+      const { user } = verifyToken();
       if (followingId === user._id) {
         throw new Error("Cannot follow your own account");
       }
