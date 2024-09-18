@@ -118,6 +118,7 @@ const resolvers = {
       };
       const post = await Post.commentPost(postId, comment);
       if (!post) throw new Error("Post not found");
+      await redis.del(CACHE_KEY);
       return post;
     },
     likePost: async (_, { postId }, { verifyToken }) => {
@@ -134,6 +135,7 @@ const resolvers = {
       }
       const post = await Post.likePost(postId, newLike);
       if (!post) throw new Error("Post not found");
+      await redis.del(CACHE_KEY);
       return post;
     },
     follow: async (_, { followingId }, { verifyToken }) => {

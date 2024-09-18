@@ -39,7 +39,6 @@ class Post {
         $push: { comments: newComment },
         $set: { updatedAt: new Date().toISOString() },
       },
-      { returnDocument: "after" }
     );
   }
   static async likePost(idString, newLike) {
@@ -50,7 +49,6 @@ class Post {
         $push: { likes: newLike },
         $set: { updatedAt: new Date().toISOString() },
       },
-      { returnDocument: "after" }
     );
   }
 }
