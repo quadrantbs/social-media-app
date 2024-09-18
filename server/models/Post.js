@@ -6,7 +6,11 @@ class Post {
     return await db.collection("posts").insertOne(post);
   }
   static async findAll() {
-    return await db.collection("posts").find({}).toArray();
+    return await db
+      .collection("posts")
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
   }
   static async findById(idString) {
     const _id = new ObjectId(idString);
