@@ -6,8 +6,6 @@ const typeDefs = gql`
     name: String!
     username: String!
     email: String!
-    following: [User]
-    followers: [User]
   }
 
   type Post {

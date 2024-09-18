@@ -2,7 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { User } = require("../models/User");
 const { Post } = require("../models/Post");
-const {Follow} = require("../models/Follow");
+const { Follow } = require("../models/Follow");
 
 const resolvers = {
   Query: {
@@ -16,21 +16,24 @@ const resolvers = {
         throw new Error("Incorrect password");
       }
       return jwt.sign(
-        { id: user.id, username: user.username },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        { _id: user._id, name: user.name, username: user.username },
+        process.env.JWT_SECRET
       );
     },
-    getUser: async (_, { id }) => {
+    getUser: async (_, { id }, { user }) => {
+      if (!user) throw new Error("You must be logged in first");
       return await User.findById(id);
     },
-    getPosts: async () => {
+    getPosts: async (_, __, { user }) => {
+      if (!user) throw new Error("You must be logged in first");
       return await Post.findAll();
     },
-    getPost: async (_, { id }) => {
+    getPost: async (_, { id }, { user }) => {
+      if (!user) throw new Error("You must be logged in first");
       return await Post.findById(id);
     },
-    searchUser: async (_, { username }) => {
+    searchUser: async (_, { username }, { user }) => {
+      if (!user) throw new Error("You must be logged in first");
       return await User.searchUser(username);
     },
   },
@@ -60,84 +63,80 @@ const resolvers = {
       const result = await User.createUser(user);
       return { _id: result.insertedId, ...user };
     },
-    addPost: async (
-      _,
-      { content, tags, imgUrl },
-    //   {user} 
-    ) => {
-      //   if (!user) throw new Error("You must be logged in to post");
+    addPost: async (_, { content, tags, imgUrl }, { user }) => {
+      if (!user) throw new Error("You must be logged in first");
       if (!content) {
         throw new Error("Content is required");
       }
       let tagsArray = [];
-      if (typeof tags === 'string') {
-        tagsArray = tags.split(',').map(tag => tag.trim());  
+      if (typeof tags === "string") {
+        tagsArray = tags.split(",").map((tag) => tag.trim());
       } else if (Array.isArray(tags)) {
-        tagsArray = tags;  
+        tagsArray = tags;
       }
+      console.log(user);
       const post = {
         content,
         tags: tagsArray,
         imgUrl,
         comments: [],
         likes: [],
-        // authorId: user.id
-        authorId: "66e96e92811fb72da0b1e34b",
+        authorId: user._id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       const result = await Post.createPost(post);
       return { _id: result.insertedId, ...post };
     },
-    commentPost: async (_, { postId, content }, 
-        // { user }
-    ) => {
-        const comment = {
-            content, 
-            // username: user.username 
-            username: "okattako",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        }
+    commentPost: async (_, { postId, content }, { user }) => {
+      if (!user) throw new Error("You must be logged in first");
+      const comment = {
+        content,
+        username: user.username,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
       const post = await Post.commentPost(postId, comment);
       if (!post) throw new Error("Post not found");
       return post;
     },
-    likePost: async (_, { postId }, 
-        // { user }
-    ) => {
-        const newLike = {
-            // username: user.username 
-            username: "okattako",
-            createdAt: new Date().toISOString(),
-        }
-        const alreadyLiked = (await Post.findById(postId)).likes.some(like=> like.username ===newLike.username)
-        if (alreadyLiked) {
-            throw new Error ("User has already liked this post")
-        }
+    likePost: async (_, { postId }, { user }) => {
+      if (!user) throw new Error("You must be logged in first");
+      const newLike = {
+        username: user.username,
+        createdAt: new Date().toISOString(),
+      };
+      const alreadyLiked = (await Post.findById(postId)).likes.some(
+        (like) => like.username === newLike.username
+      );
+      if (alreadyLiked) {
+        throw new Error("User has already liked this post");
+      }
       const post = await Post.likePost(postId, newLike);
       if (!post) throw new Error("Post not found");
       return post;
     },
-    follow: async (_, { followingId }, 
-        // { user }
-    ) => {
-        if (followingId==="66e96e92811fb72da0b1e34b") {
-            throw new Error("Cannot follow your own account")
-        }
-        const existingFollow = await Follow.findOne(followingId, 
-            followerId= "66e96e92811fb72da0b1e34b")
-            if (existingFollow) {
-               const result = await Follow.unFollow(followingId, 
-                followerId= "66e96e92811fb72da0b1e34b")
-                console.log(result)
-                return { _id: "Deleted", followingId, followerId };
-            }  
+    follow: async (_, { followingId }, { user }) => {
+      if (!user) throw new Error("You must be logged in first");
+      if (followingId === "66e96e92811fb72da0b1e34b") {
+        throw new Error("Cannot follow your own account");
+      }
+      const existingFollow = await Follow.findOne(
+        followingId,
+        (followerId = "66e96e92811fb72da0b1e34b")
+      );
+      if (existingFollow) {
+        const result = await Follow.unFollow(
+          followingId,
+          (followerId = "66e96e92811fb72da0b1e34b")
+        );
+        console.log(result);
+        return { _id: "Deleted", followingId, followerId };
+      }
       const result = await Follow.createFollow(
-        followingId, 
-        followerId= "66e96e92811fb72da0b1e34b",
-        // followerId: user.id 
-    );
+        followingId,
+        (followerId = user._id)
+      );
       return { _id: result.insertedId, followingId, followerId };
     },
   },

@@ -21,7 +21,6 @@ class User {
   }
   static async findById(idString) {
     const _id = new ObjectId(idString);
-    console.log(_id);
     return await db.collection("users").findOne(_id);
   }
 }
