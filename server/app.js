@@ -10,7 +10,7 @@ const context = ({ req }) => {
     verifyToken: () => {
       const user = verifyToken(token);
       if (!user) {
-        throw new Error("Invalid token")
+        throw new Error("Invalid token");
       }
       user._id = new ObjectId(String(user._id));
       return { user };
@@ -22,6 +22,7 @@ const server = new ApolloServer({
   typeDefs,
   resolvers,
   context,
+  cors: { origin: "*" },
 });
 
 server.listen().then(({ url }) => {

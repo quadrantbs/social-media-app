@@ -6,12 +6,24 @@ class Post {
     return await db.collection("posts").insertOne(post);
   }
   static async findAll() {
-    return await db
+    const result = await db
       .collection("posts")
-      .find({})
-      .sort({ createdAt: -1 })
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "authorId",
+            foreignField: "_id",
+            as: "author",
+          },
+        },
+        { $unwind: "$author" },
+        { $sort: { createdAt: -1 } }
+      ])
       .toArray();
+    return result;
   }
+  
   static async findById(idString) {
     const _id = new ObjectId(String(idString));
     const result = await db
@@ -38,7 +50,7 @@ class Post {
       {
         $push: { comments: newComment },
         $set: { updatedAt: new Date().toISOString() },
-      },
+      }
     );
   }
   static async likePost(idString, newLike) {
@@ -48,7 +60,7 @@ class Post {
       {
         $push: { likes: newLike },
         $set: { updatedAt: new Date().toISOString() },
-      },
+      }
     );
   }
 }
