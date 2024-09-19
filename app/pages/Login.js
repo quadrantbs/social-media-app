@@ -1,0 +1,86 @@
+import React, { useState } from 'react';
+import { StyleSheet, Text, TextInput, View, Button, Alert } from 'react-native';
+import { gql, useMutation } from '@apollo/client';
+import { StatusBar } from 'expo-status-bar';
+
+// Define the login mutation
+const LOGIN_USER = gql`
+  mutation Login($username: String!, $password: String!) {
+    login(username: $username, password: $password)
+  }
+`;
+
+export default function Login() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [loginUser, { loading, error }] = useMutation(LOGIN_USER);
+
+  const handleLogin = async () => {
+    try {
+      const { data } = await loginUser({
+        variables: {
+          username,
+          password,
+        },
+      });
+
+      if (data) {
+        Alert.alert('Login Successful', 'Welcome back!');
+        // navigate and store token here
+      }
+    } catch (err) {
+      Alert.alert('Login Failed', err.message || 'Invalid username or password.');
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <StatusBar style="auto" />
+      <Text style={styles.title}>Login</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+
+      <Button title="Login" onPress={handleLogin} disabled={loading} />
+      {error && <Text style={styles.errorText}>{error.message}</Text>}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 20,
+  },
+  input: {
+    width: '100%',
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+  },
+  errorText: {
+    color: 'red',
+    marginTop: 10,
+  },
+});
