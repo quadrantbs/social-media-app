@@ -3,7 +3,6 @@ import { StyleSheet, Text, TextInput, View, Button, Alert } from 'react-native';
 import { gql, useMutation } from '@apollo/client';
 import { StatusBar } from 'expo-status-bar';
 
-// Define the login mutation
 const LOGIN_USER = gql`
   mutation Login($username: String!, $password: String!) {
     login(username: $username, password: $password)
