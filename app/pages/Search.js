@@ -1,6 +1,14 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useNavigation } from "@react-navigation/native";
 
 const allUsers = [
   {
@@ -16,15 +24,17 @@ const allUsers = [
 ];
 
 export default function Search() {
+  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredUsers, setFilteredUsers] = useState(allUsers);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
     if (query) {
-      const filtered = allUsers.filter((user) =>
-        user.username.toLowerCase().includes(query.toLowerCase()) ||
-        user.name.toLowerCase().includes(query.toLowerCase())
+      const filtered = allUsers.filter(
+        (user) =>
+          user.username.toLowerCase().includes(query.toLowerCase()) ||
+          user.name.toLowerCase().includes(query.toLowerCase())
       );
       setFilteredUsers(filtered);
     } else {
@@ -33,16 +43,22 @@ export default function Search() {
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.userContainer}>
+    <TouchableOpacity
+      style={styles.userContainer}
+      onPress={() => handlePress(item)}
+    >
       <Text style={styles.username}>{item.username}</Text>
       <Text style={styles.name}>{item.name}</Text>
     </TouchableOpacity>
   );
 
+  const handlePress = (item) => {
+    navigation.navigate("Profile", { user: item });
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-      <Text style={styles.title}>Search Users</Text>
 
       <TextInput
         style={styles.searchInput}

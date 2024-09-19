@@ -19,7 +19,6 @@ export default function CreatePost() {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-      <Text style={styles.title}>Create Post</Text>
 
       <TextInput
         style={styles.input}

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, View, Button, Alert } from 'react-native';
+import { StyleSheet, Text, TextInput, View, Button, Alert, TouchableOpacity } from 'react-native';
 import { gql, useMutation } from '@apollo/client';
 import { StatusBar } from 'expo-status-bar';
+import { useNavigation } from '@react-navigation/native';
 
 const LOGIN_USER = gql`
   mutation Login($username: String!, $password: String!) {
@@ -12,6 +13,7 @@ const LOGIN_USER = gql`
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const navigation = useNavigation();
 
   const [loginUser, { loading, error }] = useMutation(LOGIN_USER);
 
@@ -31,6 +33,10 @@ export default function Login() {
     } catch (err) {
       Alert.alert('Login Failed', err.message || 'Invalid username or password.');
     }
+  };
+
+  const navigateToRegister = () => {
+    navigation.navigate('Register');
   };
 
   return (
@@ -54,6 +60,11 @@ export default function Login() {
 
       <Button title="Login" onPress={handleLogin} disabled={loading} />
       {error && <Text style={styles.errorText}>{error.message}</Text>}
+
+      {/* Navigable text */}
+      <TouchableOpacity onPress={navigateToRegister}>
+        <Text style={styles.registerText}>Don't have an account? Register</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -81,5 +92,11 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'red',
     marginTop: 10,
+  },
+  registerText: {
+    color: '#007BFF',
+    marginTop: 20,
+    fontSize: 16,
+    textDecorationLine: 'underline',
   },
 });

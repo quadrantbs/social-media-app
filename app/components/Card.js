@@ -1,70 +1,152 @@
 import React from "react";
-import { StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+
+const timeAgo = (timestamp) => {
+  const now = new Date();
+  const posted = new Date(timestamp);
+  const differenceInSeconds = Math.floor((now - posted) / 1000);
+
+  if (differenceInSeconds < 60) {
+    return `${differenceInSeconds} seconds ago`;
+  }
+
+  const differenceInMinutes = Math.floor(differenceInSeconds / 60);
+  if (differenceInMinutes < 60) {
+    return `${differenceInMinutes} minutes ago`;
+  }
+
+  const differenceInHours = Math.floor(differenceInMinutes / 60);
+  if (differenceInHours < 24) {
+    return `${differenceInHours} hours ago`;
+  }
+
+  const differenceInDays = Math.floor(differenceInHours / 24);
+  return `${differenceInDays} day${differenceInDays > 1 ? "s" : ""} ago`;
+};
 
 export default function Card({ item }) {
+  const navigation = useNavigation();
+
+  const handlePress = () => {
+    navigation.navigate("PostDetail", { post: item });
+  };
+
   return (
-    <View style={styles.postContainer}>
-      <Image
-        source={{ uri: item.imgUrl }}
-        style={styles.postImage}
-        resizeMode="contain"
-      />
+    <TouchableOpacity onPress={handlePress}>
+      <View style={styles.postContainer}>
+        <View style={styles.authorRow}>
+          <Image
+            source={{ uri: "https://placehold.co/40" }}
+            style={styles.profileImage}
+          />
+          <Text style={styles.author}>{item.author.username}</Text>
+        </View>
 
-      <Text style={styles.content}>{item.content}</Text>
+        <Image
+          source={{ uri: item.imgUrl }}
+          style={styles.postImage}
+          resizeMode="cover"
+        />
 
-      <View style={styles.tagsContainer}>
-        {item.tags.map((tag, index) => (
-          <Text key={index} style={styles.tag}>
-            #{tag}
+        <Text style={styles.likes}>{item.likes.length} likes</Text>
+
+        <View style={styles.contentContainer}>
+          <Text style={styles.authorInContent}>{item.author.username}</Text>
+          <Text style={styles.contentText}>{item.content}</Text>
+        </View>
+
+        <View style={styles.tagsContainer}>
+          {item.tags.map((tag, index) => (
+            <Text key={index} style={styles.tag}>
+              #{tag}
+            </Text>
+          ))}
+        </View>
+
+        <View style={styles.tagsContainer}>
+          <Text style={styles.time}>{timeAgo(item?.createdAt)}</Text>
+        </View>
+
+        <TouchableOpacity onPress={handlePress}>
+          <Text style={styles.comments}>
+            View all {item.comments.length} comments
           </Text>
-        ))}
+        </TouchableOpacity>
       </View>
-
-      <Text style={styles.info}>
-        {item.likes.length} Likes • {item.comments.length} Comments
-      </Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   postContainer: {
+    backgroundColor: "#fff",
     marginBottom: 20,
-    padding: 15,
-    backgroundColor: "#f9f9f9",
     borderRadius: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.1,
     shadowRadius: 2,
+    paddingBottom: 10,
+  },
+  authorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  author: {
+    fontSize: 16,
+    fontWeight: "bold",
   },
   postImage: {
     width: "100%",
-    height: 200,
-    borderRadius: 10,
-    backgroundColor: "#ccc",
-    marginBottom: 10,
+    height: 350,
   },
-  content: {
-    fontSize: 16,
-    marginBottom: 10,
+  likes: {
+    fontWeight: "bold",
+    margin: 10,
+    fontSize: 14,
+  },
+  contentContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 10,
+  },
+  authorInContent: {
+    fontWeight: "bold",
+    marginRight: 5,
+  },
+  contentText: {
+    fontSize: 14,
   },
   tagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginBottom: 10,
+    paddingHorizontal: 10,
+    marginTop: 5,
   },
   tag: {
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "#f0f0f0",
     paddingVertical: 3,
     paddingHorizontal: 7,
     borderRadius: 5,
     marginRight: 5,
     marginBottom: 5,
-    fontSize: 14,
+    fontSize: 12,
+    color: "#555",
   },
-  info: {
-    fontSize: 14,
+  comments: {
+    color: "#999",
+    paddingHorizontal: 10,
+    marginTop: 5,
+  },
+  time: {
+    fontSize: 12,
     color: "#888",
   },
 });

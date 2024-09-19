@@ -1,8 +1,17 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Modal, Button } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  FlatList,
+  Modal,
+  Button,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useRoute } from "@react-navigation/native";
 
-const profileData = {
+let defaultProfileData = {
   _id: "66e9657d8a5d9ccf0478b8b8",
   name: "Quadrant",
   username: "okattako_",
@@ -23,6 +32,9 @@ const profileData = {
 };
 
 export default function Profile() {
+  const route = useRoute();
+  const profileData = route?.params?.user || defaultProfileData;
+
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
 
@@ -39,20 +51,28 @@ export default function Profile() {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-      <Text style={styles.title}>{profileData.username}'s Profile</Text>
 
       <View style={styles.profileInfo}>
         <Text style={styles.name}>{profileData.name}</Text>
         <Text style={styles.username}>@{profileData.username}</Text>
 
-        <TouchableOpacity style={styles.button} onPress={() => alert("Follow/Unfollow action")}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => alert("Follow/Unfollow action")}
+        >
           <Text style={styles.buttonText}>Follow</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.dropdownContainer}>
-        <TouchableOpacity style={styles.dropdownButton} onPress={toggleFollowers}>
-          <Text style={styles.dropdownButtonText}>Followers ({profileData.followers.length})</Text>
+        <TouchableOpacity
+          style={styles.dropdownButton}
+          onPress={toggleFollowers}
+        >
+          <Text style={styles.dropdownButtonText}>
+            Followers (
+            {profileData.followers ? profileData.followers.length : "0"})
+          </Text>
         </TouchableOpacity>
         <Modal visible={showFollowers} transparent={true} animationType="slide">
           <View style={styles.modalContainer}>
@@ -67,8 +87,14 @@ export default function Profile() {
           </View>
         </Modal>
 
-        <TouchableOpacity style={styles.dropdownButton} onPress={toggleFollowing}>
-          <Text style={styles.dropdownButtonText}>Following ({profileData.following.length})</Text>
+        <TouchableOpacity
+          style={styles.dropdownButton}
+          onPress={toggleFollowing}
+        >
+          <Text style={styles.dropdownButtonText}>
+            Following (
+            {profileData.following ? profileData.following.length : "0"})
+          </Text>
         </TouchableOpacity>
         <Modal visible={showFollowing} transparent={true} animationType="slide">
           <View style={styles.modalContainer}>
@@ -92,11 +118,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
   },
   profileInfo: {
     alignItems: "center",
