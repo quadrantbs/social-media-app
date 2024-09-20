@@ -1,21 +1,30 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, View, Button, Alert, TouchableOpacity } from 'react-native';
-import { gql, useMutation } from '@apollo/client';
-import { StatusBar } from 'expo-status-bar';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Button,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
+import { gql, useMutation, useLazyQuery } from "@apollo/client";
+import { StatusBar } from "expo-status-bar";
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LOGIN_USER = gql`
-  mutation Login($username: String!, $password: String!) {
+  query Query($username: String!, $password: String!) {
     login(username: $username, password: $password)
   }
 `;
 
 export default function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const navigation = useNavigation();
 
-  const [loginUser, { loading, error }] = useMutation(LOGIN_USER);
+  const [loginUser, { loading, error }] = useLazyQuery(LOGIN_USER);
 
   const handleLogin = async () => {
     try {
@@ -27,16 +36,24 @@ export default function Login() {
       });
 
       if (data) {
-        Alert.alert('Login Successful', 'Welcome back!');
-        // navigate and store token here
+        const token = data.login;
+
+        await AsyncStorage.setItem("authToken", token);
+
+        navigation.navigate("AppTabs");
+
+        Alert.alert("Login Successful", "Welcome!");
       }
     } catch (err) {
-      Alert.alert('Login Failed', err.message || 'Invalid username or password.');
+      Alert.alert(
+        "Login Failed",
+        err.message || "Invalid username or password."
+      );
     }
   };
 
   const navigateToRegister = () => {
-    navigation.navigate('Register');
+    navigation.navigate("Register");
   };
 
   return (
@@ -72,9 +89,9 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
   },
   title: {
@@ -82,21 +99,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    width: '100%',
+    width: "100%",
     padding: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 5,
   },
   errorText: {
-    color: 'red',
+    color: "red",
     marginTop: 10,
   },
   registerText: {
-    color: '#007BFF',
+    color: "#007BFF",
     marginTop: 20,
     fontSize: 16,
-    textDecorationLine: 'underline',
+    textDecorationLine: "underline",
   },
 });

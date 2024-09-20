@@ -1,5 +1,12 @@
 import React from "react";
-import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  HttpLink,
+  ApolloLink,
+} from "@apollo/client";
+import { setContext } from '@apollo/client/link/context';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -12,16 +19,30 @@ import CreatePost from "./pages/CreatePost";
 import PostDetail from "./pages/PostDetail";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const httpLink = new HttpLink({
+  uri: "http://192.168.1.9:4000/graphql",
+});
+
+const authLink = setContext(async (_, { headers }) => {
+  const token = await AsyncStorage.getItem('authToken');
+  return {
+    headers: {
+      ...headers,
+      Authorization: token ? `Bearer ${token}` : '',
+    },
+  };
+});
 
 const client = new ApolloClient({
-  uri: "http://192.168.1.9:4000/graphql", // Use your IP address here
+  link: ApolloLink.from([authLink, httpLink]),
   cache: new InMemoryCache(),
 });
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Tab Navigator (Inside Stack)
 function AppTabs() {
   return (
     <Tab.Navigator
@@ -54,16 +75,22 @@ function AppTabs() {
   );
 }
 
-// Global Stack Navigator
 export default function App() {
   return (
     <SafeAreaProvider>
       <ApolloProvider client={client}>
         <NavigationContainer>
           <Stack.Navigator initialRouteName="Register">
-            <Stack.Screen name="Register" component={Register} options={{ headerShown: false }} />
-            <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
-
+            <Stack.Screen
+              name="Register"
+              component={Register}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Login"
+              component={Login}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="AppTabs"
               component={AppTabs}

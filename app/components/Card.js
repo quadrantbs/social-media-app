@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
 const timeAgo = (timestamp) => {
   const now = new Date();
@@ -26,10 +27,18 @@ const timeAgo = (timestamp) => {
 };
 
 export default function Card({ item }) {
+  const [liked, setLiked] = useState(false);
+  const [likes, setLikes] = useState(item.likes.length);
+
   const navigation = useNavigation();
 
   const handlePress = () => {
-    navigation.navigate("PostDetail", { post: item });
+    navigation.push("PostDetail", { post: item });
+  };
+
+  const handleLike = () => {
+    setLiked(!liked);
+    setLikes(liked ? likes - 1 : likes + 1);
   };
 
   return (
@@ -48,8 +57,17 @@ export default function Card({ item }) {
           style={styles.postImage}
           resizeMode="cover"
         />
-
-        <Text style={styles.likes}>{item.likes.length} likes</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity onPress={handleLike}>
+            <Ionicons
+              name={liked ? "heart" : "heart-outline"}
+              size={30}
+              color={liked ? "red" : "black"}
+              style={styles.icon}
+            />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.likes}>{likes} likes</Text>
 
         <View style={styles.contentContainer}>
           <Text style={styles.authorInContent}>{item.author.username}</Text>
@@ -103,6 +121,11 @@ const styles = StyleSheet.create({
   author: {
     fontSize: 16,
     fontWeight: "bold",
+  },
+  actions: {
+    flexDirection: "row",
+    paddingTop: 10,
+    paddingLeft: 10,
   },
   postImage: {
     width: "100%",
