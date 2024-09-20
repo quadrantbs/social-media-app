@@ -39,8 +39,13 @@ const typeDefs = `#graphql
     followerId: ID!
   }
 
+  type LoginResponse {
+  access_token: String
+  _id: String
+  username: String
+}
+
   type Query {
-    login(username: String!, password: String!): String
     getUser(id: ID!): User
     getPosts: [Post]
     getPost(id: ID!): Post
@@ -48,6 +53,7 @@ const typeDefs = `#graphql
   }
 
   type Mutation {
+    login(username: String!, password: String!): LoginResponse
     register(
       name: String!
       username: String!

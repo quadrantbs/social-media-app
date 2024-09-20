@@ -14,21 +14,6 @@ const CACHE_KEY = "takogram_posts_cache";
 
 const resolvers = {
   Query: {
-    login: async (_, { username, password }) => {
-      const user = await User.findOne({ username });
-      if (!user) {
-        throw new Error("Incorrect username/password");
-      }
-      const match = await comparePassword(password, user.password);
-      if (!match) {
-        throw new Error("Incorrect username/password");
-      }
-      const access_token = generateToken(
-        { _id: user._id, name: user.name, username: user.username },
-        process.env.JWT_SECRET
-      );
-      return access_token;
-    },
     getUser: async (_, { id }, { verifyToken }) => {
       verifyToken();
       return await User.findById(id);
@@ -59,6 +44,25 @@ const resolvers = {
     },
   },
   Mutation: {
+    login: async (_, { username, password }) => {
+      const user = await User.findOne({ username });
+      if (!user) {
+        throw new Error("Incorrect username/password");
+      }
+      const match = await comparePassword(password, user.password);
+      if (!match) {
+        throw new Error("Incorrect username/password");
+      }
+      const access_token = generateToken(
+        { _id: user._id, username: user.username },
+        process.env.JWT_SECRET
+      );
+      return {
+        access_token,
+        _id: user._id,
+        username: user.username,
+      };
+    },
     register: async (_, { name, username, email, password }) => {
       if (!username || !email || !password) {
         throw new Error("Username/Email/Password is required");
@@ -86,6 +90,7 @@ const resolvers = {
     },
     addPost: async (_, { content, tags, imgUrl }, { verifyToken }) => {
       const { user } = verifyToken();
+      console.log(user.id);
       if (!content) {
         throw new Error("Content is required");
       }
@@ -101,7 +106,7 @@ const resolvers = {
         imgUrl,
         comments: [],
         likes: [],
-        authorId: new ObjectId(String(user._id)),
+        authorId: new ObjectId(String(user.id)),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -131,38 +136,35 @@ const resolvers = {
       const alreadyLiked = (await Post.findById(postId)).likes.some(
         (like) => like.username === newLike.username
       );
-      let post
+      let post;
       if (alreadyLiked) {
+        console.log(user, " USER DISLIKING");
         post = await Post.dislikePost(postId, newLike);
         if (!post) throw new Error("Post not found");
-      } else{
+      } else {
+        console.log(user, " USER LIKING");
         post = await Post.likePost(postId, newLike);
         if (!post) throw new Error("Post not found");
       }
       await redis.del(CACHE_KEY);
+      console.log(post)
       return post;
     },
     follow: async (_, { followingId }, { verifyToken }) => {
       const { user } = verifyToken();
-      if (followingId === user._id) {
+      if (followingId === user.id) {
         throw new Error("Cannot follow your own account");
       }
-      const existingFollow = await Follow.findOne(
-        followingId,
-        (followerId = new ObjectId(String(user._id)))
-      );
+      const followerId = user.id;
+      console.log(followingId, "FOLLOWINGID");
+      console.log(followerId, "FOLLOWERID");
+      const existingFollow = await Follow.findOne(followingId, followerId);
       if (existingFollow) {
-        const result = await Follow.unFollow(
-          followingId,
-          (followerId = new ObjectId(String(user._id)))
-        );
+        const result = await Follow.unFollow(followingId, followerId);
         console.log(result);
         return { _id: "Deleted", followingId, followerId };
       }
-      const result = await Follow.createFollow(
-        followingId,
-        (followerId = new ObjectId(String(user._id)))
-      );
+      const result = await Follow.createFollow(followingId, followerId);
       return { _id: result.insertedId, followingId, followerId };
     },
   },

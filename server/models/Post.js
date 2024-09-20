@@ -60,7 +60,8 @@ class Post {
       {
         $push: { likes: newLike },
         $set: { updatedAt: new Date().toISOString() },
-      }
+      },
+      { returnDocument: "after" }
     );
   }
   static async dislikePost(idString, newLike) {
@@ -70,7 +71,8 @@ class Post {
       {
         $pull: { likes: { username: newLike.username } },
         $set: { updatedAt: new Date().toISOString() },
-      }
+      },
+      { returnDocument: "after" }
     );
   }
 }

@@ -29,7 +29,7 @@ class User {
           $lookup: {
             from: "follows",
             localField: "_id",
-            foreignField: "followerId",
+            foreignField: "followingId",
             as: "followers",
           },
         },
@@ -37,14 +37,14 @@ class User {
           $lookup: {
             from: "follows",
             localField: "_id",
-            foreignField: "followingId",
+            foreignField: "followerId",
             as: "following",
           },
         },
         {
           $lookup: {
             from: "users",
-            localField: "followers.followingId", 
+            localField: "followers.followerId", 
             foreignField: "_id",
             as: "followerDetails", 
           },
@@ -52,7 +52,7 @@ class User {
         {
           $lookup: {
             from: "users", 
-            localField: "following.followerId",
+            localField: "following.followingId",
             foreignField: "_id",
             as: "followingDetails", 
           },
