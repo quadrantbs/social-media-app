@@ -52,7 +52,6 @@ export default function Home() {
   }
 
   const renderItem = ({ item }) => <Card item={item} />;
-
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
@@ -71,8 +70,8 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    padding: 20,
+    backgroundColor: "#f5f3f4",
+    paddingHorizontal: 10,
   },
   title: {
     fontSize: 24,

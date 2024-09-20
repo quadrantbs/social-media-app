@@ -1,19 +1,64 @@
-import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, View, Button, Alert } from "react-native";
+import React, { useContext, useState } from "react";
+import { StyleSheet, TextInput, View, Button, Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { gql, useMutation } from "@apollo/client";
+import { useNavigation } from "@react-navigation/native";
+import { Text } from "react-native-elements";
+
+const POST_ADD_POST = gql`
+  mutation AddPost($content: String!, $tags: [String], $imgUrl: String) {
+    addPost(content: $content, tags: $tags, imgUrl: $imgUrl) {
+      _id
+      authorId
+      comments {
+        content
+        username
+        updatedAt
+      }
+      content
+      imgUrl
+      likes {
+        createdAt
+        username
+      }
+      tags
+      createdAt
+      updatedAt
+    }
+  }
+`;
 
 export default function CreatePost() {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
   const [imgUrl, setImgUrl] = useState("");
+  const navigation = useNavigation();
+  // const authContext = useContext(AuthContext);
+
+  const [addPost, { loading, error }] = useMutation(POST_ADD_POST, {
+    onCompleted: () => {
+      Alert.alert("Success", "Post created successfully");
+      navigation.goBack();
+    },
+    onError: (err) => {
+      Alert.alert("Error: ", err.message);
+      console.error(err);
+    },
+    refetchQueries: ["GetPosts"],
+  });
 
   const handleSubmit = () => {
-    const post = {
-      content: content,
-      tags: tags,
-      imgUrl: imgUrl,
-    };
-
+    const formattedTags = tags.split(",").map((tag) => tag.trim());
+    addPost({
+      variables: {
+        content,
+        tags: formattedTags,
+        imgUrl,
+      },
+    });
+    setContent("");
+    setTags("");
+    setImgUrl("");
   };
 
   return (
@@ -42,7 +87,9 @@ export default function CreatePost() {
         onChangeText={setImgUrl}
       />
 
-      <Button title="Create Post" onPress={handleSubmit} />
+      <Button title="Create Post" onPress={handleSubmit} disabled={loading} />
+
+      {error && <Text style={styles.errorText}>Error: {error.message}</Text>}
     </View>
   );
 }
@@ -53,11 +100,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
   input: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -65,5 +107,10 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 15,
     fontSize: 16,
+  },
+  errorText: {
+    color: "red",
+    marginTop: 10,
+    textAlign: "center",
   },
 });

@@ -1,7 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { gql, useMutation } from "@apollo/client";
+import * as SecureStore from "expo-secure-store";
+
+const LIKE_POST = gql`
+  mutation LikePost($postId: ID!) {
+    likePost(postId: $postId) {
+      _id
+      likes {
+        username
+        createdAt
+      }
+    }
+  }
+`;
 
 const timeAgo = (timestamp) => {
   const now = new Date();
@@ -27,18 +41,51 @@ const timeAgo = (timestamp) => {
 };
 
 export default function Card({ item }) {
+  const [currentUser, setCurrentUser] = useState(null);
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(item.likes.length);
-
   const navigation = useNavigation();
 
-  const handlePress = () => {
-    navigation.push("PostDetail", { post: item });
+  const [likePost] = useMutation(LIKE_POST, {
+    refetchQueries: ["GetPosts"],
+  });
+
+  const fetchToken = async () => {
+    try {
+      const token = JSON.parse(await SecureStore.getItemAsync("authToken"));
+      if (token) {
+        setCurrentUser(token.username);
+      }
+    } catch (error) {
+      console.error("Failed to retrieve authToken:", error);
+    }
   };
 
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikes(liked ? likes - 1 : likes + 1);
+  useEffect(() => {
+    // console.log("useEffect");
+    console.log(item.likes.some((like) => like.username === currentUser))
+    setLiked(
+      item.likes.some((like) => like.username === currentUser)
+    );
+    console.log(item)
+    fetchToken();
+  });
+
+  const handlePress = () => {
+    navigation.push("PostDetail", { postId: item._id });
+  };
+
+  const handleLike = async () => {
+    try {
+      console.log("Before mutation:", item);
+      const { data } = await likePost({ variables: { postId: item._id } });
+      setLiked(
+        data.likePost.likes.some((like) => like.username === currentUser)
+      );
+      setLikes(data.likePost.likes.length);
+    } catch (error) {
+      console.error("Error liking post:", error);
+    }
   };
 
   return (
@@ -129,7 +176,8 @@ const styles = StyleSheet.create({
   },
   postImage: {
     width: "100%",
-    height: 350,
+    height: 300,
+    backgroundColor: "#f2f2f2",
   },
   likes: {
     fontWeight: "bold",

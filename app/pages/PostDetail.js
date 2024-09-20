@@ -3,21 +3,59 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
-  TextInput,
-  Button,
   FlatList,
+  TextInput,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { Ionicons } from "@expo/vector-icons"; 
+import { gql, useQuery } from "@apollo/client";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
+const GET_POST = gql`
+  query GetPost($getPostId: ID!) {
+    getPost(id: $getPostId) {
+      _id
+      content
+      tags
+      imgUrl
+      authorId
+      author {
+        _id
+        name
+        username
+        email
+      }
+      comments {
+        content
+        updatedAt
+        username
+      }
+      likes {
+        createdAt
+        username
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
 
 export default function PostDetail({ route }) {
-  const { post } = route.params;
+  const { postId } = route.params;
+  const { data, loading, error } = useQuery(GET_POST, {
+    variables: { getPostId: postId },
+  });
+
   const [comment, setComment] = useState("");
-  const [likes, setLikes] = useState(post.likes.length);
-  const [comments, setComments] = useState(post.comments);
+  const [likes, setLikes] = useState(0);
+  const [comments, setComments] = useState([]);
   const [liked, setLiked] = useState(false);
+
+  if (loading) return <Text>Loading...</Text>;
+  if (error) return <Text>Error: {error.message}</Text>;
+
+  const post = data.getPost;
 
   const handleLike = () => {
     setLiked(!liked);
@@ -37,10 +75,10 @@ export default function PostDetail({ route }) {
 
   const renderComment = ({ item }) => (
     <View style={styles.commentContainer}>
-      <Text style={styles.commentUsername}>{item?.username}</Text>
-      <Text>{item?.content}</Text>
+      <Text style={styles.commentUsername}>{item.username}</Text>
+      <Text>{item.content}</Text>
       <Text style={styles.commentTime}>
-        {new Date(item?.updatedAt).toLocaleString()}
+        {new Date(item.updatedAt).toLocaleString()}
       </Text>
     </View>
   );
@@ -48,14 +86,6 @@ export default function PostDetail({ route }) {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
-
-      <View style={styles.header}>
-        <Image
-          source={{ uri:  "https://placehold.co/40" }}
-          style={styles.avatar}
-        />
-        <Text style={styles.author}>{post.author?.username}</Text>
-      </View>
 
       <Image
         source={{ uri: post.imgUrl }}
@@ -75,6 +105,12 @@ export default function PostDetail({ route }) {
       </View>
 
       <Text style={styles.likes}>{likes} likes</Text>
+
+      <View style={styles.contentContainer}>
+        <Text style={styles.authorInContent}>{post.author.username}</Text>
+        <Text style={styles.contentText}>{post.content}</Text>
+      </View>
+
       <View style={styles.tagsContainer}>
         {post.tags.map((tag, index) => (
           <Text key={index} style={styles.tag}>
@@ -82,8 +118,9 @@ export default function PostDetail({ route }) {
           </Text>
         ))}
       </View>
+
       <FlatList
-        data={comments}
+        data={comments.length ? comments : post.comments}
         renderItem={renderComment}
         keyExtractor={(item, index) => index.toString()}
         style={styles.commentsList}
@@ -140,6 +177,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     fontWeight: "bold",
     marginTop: 5,
+  },
+  contentContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 10,
+  },
+  authorInContent: {
+    fontWeight: "bold",
+    marginRight: 5,
+  },
+  contentText: {
+    fontSize: 14,
   },
   tagsContainer: {
     flexDirection: "row",

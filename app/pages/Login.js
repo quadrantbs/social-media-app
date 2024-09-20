@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,14 +8,19 @@ import {
   Alert,
   TouchableOpacity,
 } from "react-native";
-import { gql, useMutation, useLazyQuery } from "@apollo/client";
+import { gql, useMutation } from "@apollo/client";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
+import { AuthContext } from "../App";
 
 const LOGIN_USER = gql`
-  query Query($username: String!, $password: String!) {
-    login(username: $username, password: $password)
+  mutation Login($username: String!, $password: String!) {
+    login(username: $username, password: $password) {
+      access_token
+      _id
+      username
+    }
   }
 `;
 
@@ -23,8 +28,9 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigation = useNavigation();
+  const authContext = useContext(AuthContext);
 
-  const [loginUser, { loading, error }] = useLazyQuery(LOGIN_USER);
+  const [loginUser, { loading, error }] = useMutation(LOGIN_USER);
 
   const handleLogin = async () => {
     try {
@@ -37,8 +43,10 @@ export default function Login() {
 
       if (data) {
         const token = data.login;
+        console.log(token)
+        await SecureStore.setItemAsync("authToken", JSON.stringify(token));
 
-        await AsyncStorage.setItem("authToken", token);
+        authContext.setIsSignedIn(true);
 
         navigation.navigate("AppTabs");
 
@@ -78,7 +86,6 @@ export default function Login() {
       <Button title="Login" onPress={handleLogin} disabled={loading} />
       {error && <Text style={styles.errorText}>{error.message}</Text>}
 
-      {/* Navigable text */}
       <TouchableOpacity onPress={navigateToRegister}>
         <Text style={styles.registerText}>Don't have an account? Register</Text>
       </TouchableOpacity>

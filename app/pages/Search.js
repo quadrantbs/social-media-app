@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -9,36 +9,41 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
+import { gql, useLazyQuery, useQuery } from "@apollo/client";
 
-const allUsers = [
-  {
-    _id: "66e9657d8a5d9ccf0478b8b8",
-    name: "Quadrant",
-    username: "okattako_",
-  },
-  {
-    _id: "66e96e92811fb72da0b1e34b",
-    name: "Quadrant",
-    username: "okattako",
-  },
-];
+const SEARCH_USER = gql`
+  query SearchUser($username: String!) {
+    searchUser(username: $username) {
+      _id
+      name
+      username
+    }
+  }
+`;
 
 export default function Search() {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredUsers, setFilteredUsers] = useState(allUsers);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+
+  const { data, loading, error, refetch } = useQuery(SEARCH_USER, {
+    variables: { username: searchQuery },
+  });
+
+  useEffect(() => {
+    if (data && data.searchUser && searchQuery) {
+      setFilteredUsers(data.searchUser);
+    } else if (searchQuery == "") {
+      setFilteredUsers([]);
+    }
+  }, [data]);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
     if (query) {
-      const filtered = allUsers.filter(
-        (user) =>
-          user.username.toLowerCase().includes(query.toLowerCase()) ||
-          user.name.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilteredUsers(filtered);
+      refetch()
     } else {
-      setFilteredUsers(allUsers);
+      setFilteredUsers([]);
     }
   };
 
@@ -53,7 +58,7 @@ export default function Search() {
   );
 
   const handlePress = (item) => {
-    navigation.navigate("Profile", { user: item });
+    navigation.navigate("Profile", { userId: item._id });
   };
 
   return (
@@ -66,6 +71,9 @@ export default function Search() {
         value={searchQuery}
         onChangeText={handleSearch}
       />
+
+      {loading && <Text>Loading...</Text>}
+      {error && <Text>Error: {error.message}</Text>}
 
       <FlatList
         data={filteredUsers}
@@ -81,11 +89,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
   },
   searchInput: {
     borderWidth: 1,

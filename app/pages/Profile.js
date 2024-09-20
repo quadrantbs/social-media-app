@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,11 +7,14 @@ import {
   FlatList,
   Modal,
   Button,
+  Alert,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRoute } from "@react-navigation/native";
-import { gql, useQuery } from "@apollo/client";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { gql, useQuery, useMutation } from "@apollo/client";
+import * as SecureStore from "expo-secure-store";
+import { AuthContext } from "../App";
+import { useNavigation } from "@react-navigation/native";
 
 const GET_USER_PROFILE = gql`
   query GetUser($getUserId: ID!) {
@@ -33,21 +36,32 @@ const GET_USER_PROFILE = gql`
   }
 `;
 
+const FOLLOW_USER = gql`
+  mutation Follow($followingId: ID!) {
+    follow(followingId: $followingId) {
+      _id
+      followingId
+      followerId
+    }
+  }
+`;
+
 const Profile = () => {
   const route = useRoute();
-  const [profileData, setProfileData] = useState(null);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
+  const authContext = useContext(AuthContext);
+  const navigation = useNavigation();
 
-  const userId = route?.params?.user._id;
+  const userId = route?.params?.userId;
   const [fetchUserId, setFetchUserId] = useState(null);
-  console.log("USERID: ", route.params);
+  const [currentUserId, setCurrentUserId] = useState(null);
+
   const fetchProfileData = async () => {
-    const token = await AsyncStorage.getItem("authToken");
+    const token = JSON.parse(await SecureStore.getItemAsync("authToken"));
+    console.log(token, "TOKENPROFILE");
     if (token) {
-      const decodedToken = JSON.parse(atob(token.split(".")[1]));
-      const currentUserId = decodedToken.id;
-      console.log("Decoded Token ID: ", currentUserId);
+      setCurrentUserId(token?._id);
 
       if (userId) {
         setFetchUserId(userId);
@@ -59,16 +73,28 @@ const Profile = () => {
 
   useEffect(() => {
     fetchProfileData();
-  }, [userId]);
+  }, [userId, currentUserId]);
 
-  const { data, loading, error } = useQuery(GET_USER_PROFILE, {
+  const { data, loading, error, refetch } = useQuery(GET_USER_PROFILE, {
     variables: { getUserId: fetchUserId },
-    skip: !fetchUserId,
   });
 
-  const profile = data?.getUser || profileData;
-  console.log("Error: ", error);
-  console.log("Fetched User ID: ", fetchUserId);
+  const [followUser, { loading: loadingFollow, error: errorFollow }] =
+    useMutation(FOLLOW_USER, {
+      onCompleted: () => {
+        refetch();
+      },
+    });
+
+  const profile = data?.getUser;
+  console.log(profile);
+  const isFollowed = profile?.followers?.some(
+    (follower) => follower._id === currentUserId
+  );
+
+  const handleFollow = () => {
+    followUser({ variables: { followingId: fetchUserId } });
+  };
 
   const toggleFollowers = () => setShowFollowers(!showFollowers);
   const toggleFollowing = () => setShowFollowing(!showFollowing);
@@ -80,8 +106,30 @@ const Profile = () => {
     </View>
   );
 
+  const handleLogout = async () => {
+    Alert.alert(
+      "Confirm Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+        },
+        {
+          text: "Logout",
+          onPress: async () => {
+            await SecureStore.deleteItemAsync("authToken");
+            authContext.setIsSignedIn(false);
+            navigation.navigate("Login");
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
   if (loading) return <Text>Loading...</Text>;
   if (error) return <Text>Error: {error.message}</Text>;
+  if (errorFollow) return <Text>Error: {errorFollow.message}</Text>;
 
   return (
     <View style={styles.container}>
@@ -93,12 +141,11 @@ const Profile = () => {
             <Text style={styles.name}>{profile.name}</Text>
             <Text style={styles.username}>@{profile.username}</Text>
 
-            {userId && (
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => alert("Follow/Unfollow action")}
-              >
-                <Text style={styles.buttonText}>Follow</Text>
+            {fetchUserId != currentUserId && (
+              <TouchableOpacity style={styles.button} onPress={handleFollow}>
+                <Text style={styles.buttonText}>
+                  {isFollowed ? "Unfollow" : "Follow"}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -163,6 +210,11 @@ const Profile = () => {
             </Modal>
           </View>
         </>
+      )}
+      {fetchUserId == currentUserId && (
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -241,6 +293,21 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
     marginBottom: 20,
+  },
+  logoutButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: "#FF0000",
+    padding: 15,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  logoutText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

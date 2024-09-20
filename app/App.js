@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
 import {
   ApolloClient,
   InMemoryCache,
@@ -6,7 +6,7 @@ import {
   HttpLink,
   ApolloLink,
 } from "@apollo/client";
-import { setContext } from '@apollo/client/link/context';
+import { setContext } from "@apollo/client/link/context";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -19,18 +19,25 @@ import CreatePost from "./pages/CreatePost";
 import PostDetail from "./pages/PostDetail";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from "expo-secure-store";
+
+// Create AuthContext
+export const AuthContext = createContext({
+  isSignedIn: false,
+  setIsSignedIn: () => {},
+});
 
 const httpLink = new HttpLink({
-  uri: "http://192.168.1.9:4000/graphql",
+  uri: "http://192.168.1.9:4000/",
 });
 
 const authLink = setContext(async (_, { headers }) => {
-  const token = await AsyncStorage.getItem('authToken');
+  const token = JSON.parse(await SecureStore.getItemAsync("authToken"));
+  // console.log(token,">>TOKEN AUTHLINK")
   return {
     headers: {
       ...headers,
-      Authorization: token ? `Bearer ${token}` : '',
+      Authorization: token ? `Bearer ${token.access_token}` : "",
     },
   };
 });
@@ -75,32 +82,72 @@ function AppTabs() {
   );
 }
 
-export default function App() {
+function App() {
+  const { isSignedIn } = useContext(AuthContext); // Access isSignedIn state
+
   return (
     <SafeAreaProvider>
       <ApolloProvider client={client}>
         <NavigationContainer>
-          <Stack.Navigator initialRouteName="Register">
-            <Stack.Screen
-              name="Register"
-              component={Register}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Login"
-              component={Login}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="AppTabs"
-              component={AppTabs}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="PostDetail" component={PostDetail} />
-            <Stack.Screen name="Profile" component={Profile} />
+          <Stack.Navigator>
+            {isSignedIn ? (
+              <>
+                <Stack.Screen
+                  name="AppTabs"
+                  component={AppTabs}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="PostDetail" component={PostDetail} />
+                <Stack.Screen name="Profile" component={Profile} />
+              </>
+            ) : (
+              <>
+                <Stack.Screen
+                  name="Login"
+                  component={Login}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Register"
+                  component={Register}
+                  options={{ headerShown: false }}
+                />
+              </>
+            )}
           </Stack.Navigator>
         </NavigationContainer>
       </ApolloProvider>
     </SafeAreaProvider>
+  );
+}
+
+// AuthProvider to manage authentication state
+const AuthProvider = ({ children }) => {
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const token = await SecureStore.getItemAsync("authToken");
+      console.log(token,"<<<TOKEN CHECKAUTHPROV")
+      if (token) {
+        setIsSignedIn(true);
+      }
+    };
+    checkAuthStatus();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ isSignedIn, setIsSignedIn }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// Main component wrapping everything with AuthProvider
+export default function MainApp() {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   );
 }
