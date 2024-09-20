@@ -1,5 +1,4 @@
 const { ApolloServer } = require("apollo-server");
-const { ObjectId } = require("mongodb");
 const typeDefs = require("./typeDefs");
 const resolvers = require("./resolvers");
 const { verifyToken } = require("./helpers");
@@ -12,7 +11,6 @@ const context = ({ req }) => {
       if (!user) {
         throw new Error("Invalid token");
       }
-      user._id = new ObjectId(String(user._id));
       return { user };
     },
   };

@@ -1,6 +1,7 @@
 const { User } = require("../models/User");
 const { Post } = require("../models/Post");
 const { Follow } = require("../models/Follow");
+const { ObjectId } = require("mongodb");
 const Redis = require("ioredis");
 const { generateToken, comparePassword, hashPassword } = require("../helpers");
 const redis = new Redis({
@@ -100,7 +101,7 @@ const resolvers = {
         imgUrl,
         comments: [],
         likes: [],
-        authorId: user._id,
+        authorId: new ObjectId(String(user._id)),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -130,11 +131,14 @@ const resolvers = {
       const alreadyLiked = (await Post.findById(postId)).likes.some(
         (like) => like.username === newLike.username
       );
+      let post
       if (alreadyLiked) {
-        throw new Error("User has already liked this post");
+        post = await Post.dislikePost(postId, newLike);
+        if (!post) throw new Error("Post not found");
+      } else{
+        post = await Post.likePost(postId, newLike);
+        if (!post) throw new Error("Post not found");
       }
-      const post = await Post.likePost(postId, newLike);
-      if (!post) throw new Error("Post not found");
       await redis.del(CACHE_KEY);
       return post;
     },
@@ -145,19 +149,19 @@ const resolvers = {
       }
       const existingFollow = await Follow.findOne(
         followingId,
-        (followerId = user._id)
+        (followerId = new ObjectId(String(user._id)))
       );
       if (existingFollow) {
         const result = await Follow.unFollow(
           followingId,
-          (followerId = user._id)
+          (followerId = new ObjectId(String(user._id)))
         );
         console.log(result);
         return { _id: "Deleted", followingId, followerId };
       }
       const result = await Follow.createFollow(
         followingId,
-        (followerId = user._id)
+        (followerId = new ObjectId(String(user._id)))
       );
       return { _id: result.insertedId, followingId, followerId };
     },

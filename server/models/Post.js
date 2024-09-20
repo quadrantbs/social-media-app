@@ -18,12 +18,12 @@ class Post {
           },
         },
         { $unwind: "$author" },
-        { $sort: { createdAt: -1 } }
+        { $sort: { createdAt: -1 } },
       ])
       .toArray();
     return result;
   }
-  
+
   static async findById(idString) {
     const _id = new ObjectId(String(idString));
     const result = await db
@@ -59,6 +59,16 @@ class Post {
       { _id },
       {
         $push: { likes: newLike },
+        $set: { updatedAt: new Date().toISOString() },
+      }
+    );
+  }
+  static async dislikePost(idString, newLike) {
+    const _id = new ObjectId(String(idString));
+    return await db.collection("posts").findOneAndUpdate(
+      { _id },
+      {
+        $pull: { likes: { username: newLike.username } },
         $set: { updatedAt: new Date().toISOString() },
       }
     );
