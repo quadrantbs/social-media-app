@@ -82,7 +82,11 @@ function AppTabs() {
         tabBarStyle: { paddingBottom: 10, height: 60 },
       })}
     >
-      <Tab.Screen name="Home" component={Home} />
+      <Tab.Screen
+        name="Home"
+        component={Home}
+        options={{ title: "Takogram" }}
+      />
       <Tab.Screen name="CreatePost" component={CreatePost} />
       <Tab.Screen name="Search" component={Search} />
       <Tab.Screen name="My Profile" component={Profile} />

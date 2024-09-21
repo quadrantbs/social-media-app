@@ -57,7 +57,7 @@ export default function Card({ item }) {
   const [likePost] = useMutation(LIKE_POST, {
     refetchQueries: ["GetPosts"],
   });
-  
+
   useEffect(() => {
     setLiked(item.likes.some((like) => like.username === currentUser));
     setCurrentUser(authContext.username);
@@ -87,16 +87,22 @@ export default function Card({ item }) {
     }
   };
 
+  const handlePressProfile = (item) => {
+    navigation.push("Profile", { userId: item.authorId });
+  };
+
   return (
     <TouchableOpacity onPress={handlePress}>
       <View style={styles.postContainer}>
-        <View style={styles.authorRow}>
-          <Image
-            source={{ uri: "https://placehold.co/40" }}
-            style={styles.profileImage}
-          />
-          <Text style={styles.author}>{item.author.username}</Text>
-        </View>
+        <TouchableOpacity onPress={() => handlePressProfile(item)}>
+          <View style={styles.authorRow}>
+            <Image
+              source={{ uri: "https://placehold.co/40" }}
+              style={styles.profileImage}
+            />
+            <Text style={styles.author}>{item.author.username}</Text>
+          </View>
+        </TouchableOpacity>
 
         <Image
           source={{ uri: item.imgUrl }}
@@ -180,7 +186,8 @@ const styles = StyleSheet.create({
   },
   likes: {
     fontWeight: "bold",
-    margin: 10,
+    marginHorizontal: 10,
+    marginVertical: 2,
     fontSize: 14,
   },
   contentContainer: {

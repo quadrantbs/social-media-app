@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../auth";
+import { useNavigation } from "@react-navigation/native";
 
 const GET_POST = gql`
   query GetPost($getPostId: ID!) {
@@ -86,6 +87,7 @@ export default function PostDetail({ route }) {
   const [likes, setLikes] = useState(0);
   const [liked, setLiked] = useState(false);
   const [comments, setComments] = useState([]);
+  const navigation = useNavigation();
 
   useEffect(() => {
     setCurrentUser(authContext.username)
@@ -131,6 +133,10 @@ export default function PostDetail({ route }) {
     }
   };
 
+  const handlePressProfile = (post) => {
+    navigation.push("Profile", { userId: post.authorId });
+  };
+
   const renderComment = ({ item }) => (
     <View style={styles.commentContainer}>
       <Text style={styles.commentUsername}>{item.username}</Text>
@@ -165,7 +171,7 @@ export default function PostDetail({ route }) {
 
 
       <View style={styles.contentContainer}>
-        <Text style={styles.authorInContent}>{post.author.username}</Text>
+        <Text style={styles.authorInContent} onPress={() => handlePressProfile(post)}>{post.author.username}</Text>
         <Text style={styles.contentText}>{post.content}</Text>
       </View>
 
@@ -211,7 +217,8 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: "row",
-    padding: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   icon: {
     marginRight: 1,
