@@ -71,12 +71,15 @@ const COMMENT_POST = gql`
 export default function PostDetail({ route }) {
   const { postId } = route.params;
   const authContext = useContext(AuthContext);
+
   const { data, loading, error } = useQuery(GET_POST, {
     variables: { getPostId: postId },
   });
+
   const [likePost] = useMutation(LIKE_POST, {
     refetchQueries: ["GetPost"],
   });
+  
   const [commentPost] = useMutation(COMMENT_POST, {
     refetchQueries: ["GetPost"],
   });

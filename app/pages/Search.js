@@ -74,7 +74,7 @@ export default function Search() {
 
       {loading && <Text>Loading...</Text>}
       {error && <Text>Error: {error.message}</Text>}
-      {filteredUsers.length == 0 && <Text>No Result</Text>}
+      {filteredUsers.length == 0 && <View style={styles.container}><Text >Search Result Goes Here</Text></View>}
       <FlatList
         data={filteredUsers}
         renderItem={renderItem}

@@ -24,7 +24,7 @@ import { ActivityIndicator, View } from "react-native";
 import { AuthContext } from "./auth";
 
 const httpLink = new HttpLink({
-  uri: "http://192.168.1.9:4000/",
+  uri: "https://takogram.okattako.site/",
 });
 
 const authLink = setContext(async (_, { headers }) => {
