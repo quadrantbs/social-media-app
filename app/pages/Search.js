@@ -41,7 +41,7 @@ export default function Search() {
   const handleSearch = (query) => {
     setSearchQuery(query);
     if (query) {
-      refetch()
+      refetch();
     } else {
       setFilteredUsers([]);
     }
@@ -74,7 +74,7 @@ export default function Search() {
 
       {loading && <Text>Loading...</Text>}
       {error && <Text>Error: {error.message}</Text>}
-
+      {filteredUsers.length == 0 && <Text>No Result</Text>}
       <FlatList
         data={filteredUsers}
         renderItem={renderItem}

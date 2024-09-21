@@ -51,6 +51,7 @@ export default function Card({ item }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(item.likes.length);
+  const [resizeMode, setResizeMode] = useState("cover");
   const navigation = useNavigation();
   const authContext = useContext(AuthContext);
   const [likePost] = useMutation(LIKE_POST, {
@@ -60,6 +61,13 @@ export default function Card({ item }) {
   useEffect(() => {
     setLiked(item.likes.some((like) => like.username === currentUser));
     setCurrentUser(authContext.username);
+    Image.getSize(item.imgUrl, (width, height) => {
+      if (height > width) {
+        setResizeMode("contain");
+      } else {
+        setResizeMode("cover");
+      }
+    });
   });
 
   const handlePress = () => {
@@ -93,7 +101,7 @@ export default function Card({ item }) {
         <Image
           source={{ uri: item.imgUrl }}
           style={styles.postImage}
-          resizeMode="cover"
+          resizeMode={resizeMode}
         />
         <View style={styles.actions}>
           <TouchableOpacity onPress={handleLike}>

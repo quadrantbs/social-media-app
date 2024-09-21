@@ -10,7 +10,7 @@ import {
   Alert,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { useRoute } from "@react-navigation/native";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import * as SecureStore from "expo-secure-store";
 import { useNavigation } from "@react-navigation/native";
@@ -69,6 +69,12 @@ const Profile = () => {
     fetchProfileData();
   }, [userId, currentUserId]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      refetch();
+    }, [])
+  );
+
   const { data, loading, error, refetch } = useQuery(GET_USER_PROFILE, {
     variables: { getUserId: fetchUserId },
   });
@@ -91,6 +97,7 @@ const Profile = () => {
   const toggleModal = (type) => {
     setModalType(type);
     setModalVisible(!modalVisible);
+    refetch();
   };
 
   const renderUser = ({ item }) => (

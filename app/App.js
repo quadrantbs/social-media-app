@@ -40,7 +40,19 @@ const authLink = setContext(async (_, { headers }) => {
 
 const client = new ApolloClient({
   link: ApolloLink.from([authLink, httpLink]),
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Post: {
+        fields: {
+          likes: {
+            merge(existing = [], incoming = []) {
+              return incoming;
+            },
+          },
+        },
+      },
+    },
+  }),
 });
 
 const Stack = createStackNavigator();
