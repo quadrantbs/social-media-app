@@ -20,8 +20,8 @@ import PostDetail from "./pages/PostDetail";
 import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import * as SecureStore from "expo-secure-store";
+import { ActivityIndicator, View } from "react-native";
 
-// Create AuthContext
 export const AuthContext = createContext({
   isSignedIn: false,
   setIsSignedIn: () => {},
@@ -121,20 +121,31 @@ function App() {
   );
 }
 
-// AuthProvider to manage authentication state
 const AuthProvider = ({ children }) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const checkAuthStatus = async () => {
+    setLoading(true)
+    const token = await SecureStore.getItemAsync("authToken");
+    console.log(token, "<<<TOKEN CHECKAUTHPROV");
+    if (token) {
+      setIsSignedIn(true);
+    }
+    setLoading(false)
+  };
 
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      const token = await SecureStore.getItemAsync("authToken");
-      console.log(token,"<<<TOKEN CHECKAUTHPROV")
-      if (token) {
-        setIsSignedIn(true);
-      }
-    };
     checkAuthStatus();
   }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ isSignedIn, setIsSignedIn }}>
@@ -143,7 +154,6 @@ const AuthProvider = ({ children }) => {
   );
 };
 
-// Main component wrapping everything with AuthProvider
 export default function MainApp() {
   return (
     <AuthProvider>

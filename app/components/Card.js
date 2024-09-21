@@ -63,11 +63,9 @@ export default function Card({ item }) {
 
   useEffect(() => {
     // console.log("useEffect");
-    console.log(item.likes.some((like) => like.username === currentUser))
-    setLiked(
-      item.likes.some((like) => like.username === currentUser)
-    );
-    console.log(item)
+    // console.log(item.likes.some((like) => like.username === currentUser));
+    setLiked(item.likes.some((like) => like.username === currentUser));
+    // console.log(item);
     fetchToken();
   });
 
@@ -77,7 +75,6 @@ export default function Card({ item }) {
 
   const handleLike = async () => {
     try {
-      console.log("Before mutation:", item);
       const { data } = await likePost({ variables: { postId: item._id } });
       setLiked(
         data.likePost.likes.some((like) => like.username === currentUser)
@@ -85,6 +82,7 @@ export default function Card({ item }) {
       setLikes(data.likePost.likes.length);
     } catch (error) {
       console.error("Error liking post:", error);
+      Alert.alert("Error liking post:", error.message);
     }
   };
 
