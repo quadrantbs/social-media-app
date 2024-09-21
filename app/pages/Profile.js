@@ -13,8 +13,8 @@ import { StatusBar } from "expo-status-bar";
 import { useRoute } from "@react-navigation/native";
 import { gql, useQuery, useMutation } from "@apollo/client";
 import * as SecureStore from "expo-secure-store";
-import { AuthContext } from "../App";
 import { useNavigation } from "@react-navigation/native";
+import { AuthContext } from "../auth";
 
 const GET_USER_PROFILE = gql`
   query GetUser($getUserId: ID!) {
@@ -48,26 +48,20 @@ const FOLLOW_USER = gql`
 
 const Profile = () => {
   const route = useRoute();
-  const [showFollowers, setShowFollowers] = useState(false);
-  const [showFollowing, setShowFollowing] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState("");
   const authContext = useContext(AuthContext);
   const navigation = useNavigation();
-
   const userId = route?.params?.userId;
   const [fetchUserId, setFetchUserId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
 
   const fetchProfileData = async () => {
-    const token = JSON.parse(await SecureStore.getItemAsync("authToken"));
-    console.log(token, "TOKENPROFILE");
-    if (token) {
-      setCurrentUserId(token?._id);
-
-      if (userId) {
-        setFetchUserId(userId);
-      } else {
-        setFetchUserId(currentUserId);
-      }
+    setCurrentUserId(authContext.userId);
+    if (userId) {
+      setFetchUserId(userId);
+    } else {
+      setFetchUserId(currentUserId);
     }
   };
 
@@ -79,15 +73,13 @@ const Profile = () => {
     variables: { getUserId: fetchUserId },
   });
 
-  const [followUser, { loading: loadingFollow, error: errorFollow }] =
-    useMutation(FOLLOW_USER, {
-      onCompleted: () => {
-        refetch();
-      },
-    });
+  const [followUser, { error: errorFollow }] = useMutation(FOLLOW_USER, {
+    onCompleted: () => {
+      refetch();
+    },
+  });
 
   const profile = data?.getUser;
-  console.log(profile);
   const isFollowed = profile?.followers?.some(
     (follower) => follower._id === currentUserId
   );
@@ -96,15 +88,22 @@ const Profile = () => {
     followUser({ variables: { followingId: fetchUserId } });
   };
 
-  const toggleFollowers = () => setShowFollowers(!showFollowers);
-  const toggleFollowing = () => setShowFollowing(!showFollowing);
+  const toggleModal = (type) => {
+    setModalType(type);
+    setModalVisible(!modalVisible);
+  };
 
   const renderUser = ({ item }) => (
-    <View style={styles.userItem}>
+    <TouchableOpacity style={styles.userItem} onPress={() => handlePress(item)}>
       <Text style={styles.username}>{item.username}</Text>
       <Text style={styles.name}>{item.name}</Text>
-    </View>
+    </TouchableOpacity>
   );
+
+  const handlePress = (item) => {
+    toggleModal("");
+    navigation.push("Profile", { userId: item._id });
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -141,74 +140,64 @@ const Profile = () => {
             <Text style={styles.name}>{profile.name}</Text>
             <Text style={styles.username}>@{profile.username}</Text>
 
-            {fetchUserId != currentUserId && (
+            {fetchUserId != currentUserId ? (
               <TouchableOpacity style={styles.button} onPress={handleFollow}>
                 <Text style={styles.buttonText}>
                   {isFollowed ? "Unfollow" : "Follow"}
                 </Text>
               </TouchableOpacity>
+            ) : (
+              <View style={{ height: 56 }} />
             )}
           </View>
 
           <View style={styles.dropdownContainer}>
             <TouchableOpacity
               style={styles.dropdownButton}
-              onPress={toggleFollowers}
+              onPress={() => toggleModal("followers")}
             >
               <Text style={styles.dropdownButtonText}>
                 Followers ({profile?.followers?.length})
               </Text>
             </TouchableOpacity>
-            <Modal
-              visible={showFollowers}
-              transparent={true}
-              animationType="slide"
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  {profile?.followers?.length > 0 ? (
-                    <FlatList
-                      data={profile.followers}
-                      renderItem={renderUser}
-                      keyExtractor={(item) => item._id}
-                    />
-                  ) : (
-                    <Text style={styles.noFollowText}>No followers yet</Text>
-                  )}
-                  <Button title="Close" onPress={toggleFollowers} />
-                </View>
-              </View>
-            </Modal>
 
             <TouchableOpacity
               style={styles.dropdownButton}
-              onPress={toggleFollowing}
+              onPress={() => toggleModal("following")}
             >
               <Text style={styles.dropdownButtonText}>
                 Following ({profile?.following?.length})
               </Text>
             </TouchableOpacity>
-            <Modal
-              visible={showFollowing}
-              transparent={true}
-              animationType="slide"
-            >
-              <View style={styles.modalContainer}>
-                <View style={styles.modalContent}>
-                  {profile?.following?.length > 0 ? (
-                    <FlatList
-                      data={profile.following}
-                      renderItem={renderUser}
-                      keyExtractor={(item) => item._id}
-                    />
-                  ) : (
-                    <Text style={styles.noFollowText}>No followings yet</Text>
-                  )}
-                  <Button title="Close" onPress={toggleFollowing} />
-                </View>
-              </View>
-            </Modal>
           </View>
+
+          <Modal
+            visible={modalVisible}
+            transparent={true}
+            animationType="slide"
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                {modalType === "followers" && profile?.followers?.length > 0 ? (
+                  <FlatList
+                    data={profile.followers}
+                    renderItem={renderUser}
+                    keyExtractor={(item) => item._id}
+                  />
+                ) : modalType === "following" &&
+                  profile?.following?.length > 0 ? (
+                  <FlatList
+                    data={profile.following}
+                    renderItem={renderUser}
+                    keyExtractor={(item) => item._id}
+                  />
+                ) : (
+                  <Text style={styles.noFollowText}>No {modalType} yet</Text>
+                )}
+                <Button title="Close" onPress={() => toggleModal("")} />
+              </View>
+            </View>
+          </Modal>
         </>
       )}
       {fetchUserId == currentUserId && (
@@ -278,14 +267,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
     width: "100%",
+    marginVertical: 4,
   },
   username: {
     fontSize: 16,
     fontWeight: "bold",
+    textAlign: "center",
   },
   name: {
     fontSize: 14,
     color: "#666",
+    textAlign: "center",
   },
   noFollowText: {
     fontSize: 16,

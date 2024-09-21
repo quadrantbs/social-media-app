@@ -1,9 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
+import React, { useState, useEffect, useContext } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { gql, useMutation } from "@apollo/client";
-import * as SecureStore from "expo-secure-store";
+import { AuthContext } from "../auth";
 
 const LIKE_POST = gql`
   mutation LikePost($postId: ID!) {
@@ -45,28 +52,14 @@ export default function Card({ item }) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(item.likes.length);
   const navigation = useNavigation();
-
+  const authContext = useContext(AuthContext);
   const [likePost] = useMutation(LIKE_POST, {
     refetchQueries: ["GetPosts"],
   });
-
-  const fetchToken = async () => {
-    try {
-      const token = JSON.parse(await SecureStore.getItemAsync("authToken"));
-      if (token) {
-        setCurrentUser(token.username);
-      }
-    } catch (error) {
-      console.error("Failed to retrieve authToken:", error);
-    }
-  };
-
+  
   useEffect(() => {
-    // console.log("useEffect");
-    // console.log(item.likes.some((like) => like.username === currentUser));
     setLiked(item.likes.some((like) => like.username === currentUser));
-    // console.log(item);
-    fetchToken();
+    setCurrentUser(authContext.username);
   });
 
   const handlePress = () => {

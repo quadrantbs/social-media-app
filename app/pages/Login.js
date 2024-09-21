@@ -12,7 +12,7 @@ import { gql, useMutation } from "@apollo/client";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
-import { AuthContext } from "../App";
+import { AuthContext } from "../auth";
 
 const LOGIN_USER = gql`
   mutation Login($username: String!, $password: String!) {

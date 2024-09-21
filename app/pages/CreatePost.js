@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet, TextInput, View, Button, Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { gql, useMutation } from "@apollo/client";
@@ -33,7 +33,6 @@ export default function CreatePost() {
   const [tags, setTags] = useState("");
   const [imgUrl, setImgUrl] = useState("");
   const navigation = useNavigation();
-  // const authContext = useContext(AuthContext);
 
   const [addPost, { loading, error }] = useMutation(POST_ADD_POST, {
     onCompleted: () => {

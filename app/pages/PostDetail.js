@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,10 +7,12 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
+  Alert,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { gql, useQuery } from "@apollo/client";
+import { gql, useQuery, useMutation } from "@apollo/client";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { AuthContext } from "../auth";
 
 const GET_POST = gql`
   query GetPost($getPostId: ID!) {
@@ -41,36 +43,92 @@ const GET_POST = gql`
   }
 `;
 
+const LIKE_POST = gql`
+  mutation LikePost($postId: ID!) {
+    likePost(postId: $postId) {
+      _id
+      likes {
+        username
+        createdAt
+      }
+    }
+  }
+`;
+
+const COMMENT_POST = gql`
+  mutation CommentPost($postId: ID!, $content: String!) {
+    commentPost(postId: $postId, content: $content) {
+      comments {
+        username
+        content
+        updatedAt
+      }
+    }
+  }
+`;
+
 export default function PostDetail({ route }) {
   const { postId } = route.params;
+  const authContext = useContext(AuthContext);
   const { data, loading, error } = useQuery(GET_POST, {
     variables: { getPostId: postId },
   });
+  const [likePost] = useMutation(LIKE_POST, {
+    refetchQueries: ["GetPost"],
+  });
+  const [commentPost] = useMutation(COMMENT_POST, {
+    refetchQueries: ["GetPost"],
+  });
 
+  const post = data?.getPost;
+  const [currentUser, setCurrentUser] = useState(null);
   const [comment, setComment] = useState("");
   const [likes, setLikes] = useState(0);
-  const [comments, setComments] = useState([]);
   const [liked, setLiked] = useState(false);
+  const [comments, setComments] = useState([]);
+
+  useEffect(() => {
+    setCurrentUser(authContext.username)
+  }, []);
+
+  useEffect(() => {
+    if (post && currentUser) {
+      setLikes(post.likes.length);
+      setLiked(post.likes.some((like) => like.username === currentUser));
+    }
+  }, [post, currentUser]);
 
   if (loading) return <Text>Loading...</Text>;
   if (error) return <Text>Error: {error.message}</Text>;
 
-  const post = data.getPost;
-
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikes(liked ? likes - 1 : likes + 1);
+  const handleLike = async () => {
+    try {
+      const response = await likePost({ variables: { postId: post._id } });
+      const likeData = response.data;
+      setLiked(
+        likeData.likePost.likes.some((like) => like.username === currentUser)
+      );
+      setLikes(likeData.likePost.likes.length);
+    } catch (error) {
+      console.error("Error liking post:", error);
+      Alert.alert("Error liking post:", error.message);
+    }
   };
 
-  const handleAddComment = () => {
-    if (comment.trim() === "") return;
-    const newComment = {
-      content: comment,
-      updatedAt: new Date().toISOString(),
-      username: "username",
-    };
-    setComments([...comments, newComment]);
-    setComment("");
+  const handleAddComment = async () => {
+    try {
+      const { data } = await commentPost({
+        variables: {
+          postId: post._id,
+          content: comment,
+        },
+      });
+      setComments(data.commentPost.comments);
+      setComment("");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      Alert.alert("Error adding comment:", error.message);
+    }
   };
 
   const renderComment = ({ item }) => (
@@ -102,9 +160,9 @@ export default function PostDetail({ route }) {
             style={styles.icon}
           />
         </TouchableOpacity>
+      <Text style={styles.likes}>{likes} likes</Text>
       </View>
 
-      <Text style={styles.likes}>{likes} likes</Text>
 
       <View style={styles.contentContainer}>
         <Text style={styles.authorInContent}>{post.author.username}</Text>
@@ -146,21 +204,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
-  },
-  author: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
   postImage: {
     width: "100%",
     height: 300,
@@ -171,7 +214,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   icon: {
-    marginRight: 15,
+    marginRight: 1,
   },
   likes: {
     paddingHorizontal: 10,

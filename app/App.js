@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   ApolloClient,
   InMemoryCache,
@@ -21,11 +21,7 @@ import Search from "./pages/Search";
 import Profile from "./pages/Profile";
 import * as SecureStore from "expo-secure-store";
 import { ActivityIndicator, View } from "react-native";
-
-export const AuthContext = createContext({
-  isSignedIn: false,
-  setIsSignedIn: () => {},
-});
+import { AuthContext } from "./auth";
 
 const httpLink = new HttpLink({
   uri: "http://192.168.1.9:4000/",
@@ -83,7 +79,7 @@ function AppTabs() {
 }
 
 function App() {
-  const { isSignedIn } = useContext(AuthContext); // Access isSignedIn state
+  const { isSignedIn } = useContext(AuthContext);
 
   return (
     <SafeAreaProvider>
@@ -124,20 +120,25 @@ function App() {
 const AuthProvider = ({ children }) => {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState(null);
+  const [username, setUsername] = useState(null);
 
   const checkAuthStatus = async () => {
-    setLoading(true)
+    setLoading(true);
     const token = await SecureStore.getItemAsync("authToken");
     console.log(token, "<<<TOKEN CHECKAUTHPROV");
     if (token) {
+      const parsedToken = JSON.parse(token);
+      setUserId(parsedToken._id);
+      setUsername(parsedToken.username);
       setIsSignedIn(true);
     }
-    setLoading(false)
+    setLoading(false);
   };
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+  }, [isSignedIn]);
 
   if (loading) {
     return (
@@ -148,7 +149,9 @@ const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isSignedIn, setIsSignedIn }}>
+    <AuthContext.Provider
+      value={{ isSignedIn, setIsSignedIn, userId, username }}
+    >
       {children}
     </AuthContext.Provider>
   );

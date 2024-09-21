@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
-import { gql, useLazyQuery, useQuery } from "@apollo/client";
+import { gql, useQuery } from "@apollo/client";
 
 const SEARCH_USER = gql`
   query SearchUser($username: String!) {
@@ -58,7 +58,7 @@ export default function Search() {
   );
 
   const handlePress = (item) => {
-    navigation.navigate("Profile", { userId: item._id });
+    navigation.push("Profile", { userId: item._id });
   };
 
   return (
