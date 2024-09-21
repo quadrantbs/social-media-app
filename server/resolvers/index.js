@@ -116,6 +116,9 @@ const resolvers = {
     },
     commentPost: async (_, { postId, content }, { verifyToken }) => {
       const { user } = verifyToken();
+      if (!content) {
+        throw new Error("Comment's content cannot be empty");
+      }
       const comment = {
         content,
         username: user.username,
