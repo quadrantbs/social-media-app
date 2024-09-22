@@ -21,6 +21,7 @@ const context = ({ req }) => {
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  introspection: true,
 });
 
 const startServer = async () => {
@@ -28,7 +29,6 @@ const startServer = async () => {
     context,
     listen: { port: process.env.PORT || 3000 },
   });
-
   console.log(`Server ready at ${url}`);
 };
 
